@@ -23,40 +23,10 @@ func setup_day(day int, session_cookie string) {
 	fmt.Printf("%02v\n", day)
 	instruction_url := fmt.Sprintf("http://adventofcode.com/2017/day/%v", day)
 
-	fmt.Println("Get title from instruction page")
-	response, err := http.Get(instruction_url)
-	check_err(err)
-
-	body, err := ioutil.ReadAll(response.Body)
-	response.Body.Close()
-	check_err(err)
-
-	r, _ := regexp.Compile("--- (Day .+?) ---")
-	if !r.Match(body) {
-		log.Fatal("title not matched")
-	}
-	title := string(r.FindSubmatch(body)[1])
-
 	folder := fmt.Sprintf("%02v", day)
 	fmt.Println("Create folder", folder)
 	err = os.MkdirAll(folder, 0755)
 	check_err(err)
-
-	fmt.Println("Create README file")
-	readme_file, err := os.Create(folder + "/README.md")
-	check_err(err)
-	defer readme_file.Close()
-
-	README_content := `# %v
-[Link](%v)
-
-## Part 1
-_TODO_
-
-## Part 2
-_TODO_
-`
-	fmt.Fprintf(readme_file, README_content, title, instruction_url)
 
 	fmt.Println("Create template .go file")
 	go_file, err := os.Create(fmt.Sprintf("%v/day%02v.go", folder, day))
