@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 	"strconv"
+	"io/ioutil"
 )
 
 type test_input struct {
@@ -15,46 +16,38 @@ type test_input struct {
 }
 
 func process(r io.Reader) (string, string) {
-	buf := make([]byte, 1)
+	buf, err := ioutil.ReadAll(r)
+	buf = []byte(strings.TrimSpace(string(buf)))
+	check_err(err)
 
-	sum := 0
+	sum_1, sum_2 := 0, 0
 
-	var first_digit, previous_digit byte = '#', '#'
 	add_flag := false
-	for {
-		_, err := r.Read(buf)
-		if err == io.EOF {
-			break
-		}
+	for i := range buf {
 
-		if first_digit == '#' {
-			first_digit = buf[0]
-		}
-
-		x, err := strconv.Atoi(string(buf))
+		x, err := strconv.Atoi(string(buf[i]))
 		if err != nil {
 			continue
 		}
 
-		if buf[0] == previous_digit {
+		// part 1
+		if buf[i] == buf[(i+1)%len(buf)] {
 			if !add_flag {
 				// add the skipped digit
 				//sum += x
 			}
 			add_flag = true
-			sum += x
+			sum_1 += x
 		} else {
 			add_flag = false
 		}
-		fmt.Printf("sum=%v, previous_digit=%c, buf[0]=%c (x=%v), add_flag=%v, first_digit=%c\n", sum, previous_digit, buf[0], x, add_flag, first_digit)
-		previous_digit = buf[0]
 
+		// part 2
+		if (i < len(buf)/2) && (buf[i] == buf[i+len(buf)/2]) {
+			sum_2 += 2*x
+		}
 	}
-	if previous_digit == first_digit {
-		x, _ := strconv.Atoi(string(first_digit))
-		sum += x
-	}
-	return strconv.Itoa(sum), ""
+	return strconv.Itoa(sum_1), strconv.Itoa(sum_2)
 }
 
 func main() {
@@ -67,6 +60,11 @@ func main() {
 		{strings.NewReader("1111"), "4", ""},
 		{strings.NewReader("1234"), "0", ""},
 		{strings.NewReader("91212129"), "9", ""},
+		{strings.NewReader("1212"), "", "6"},
+		{strings.NewReader("1221"), "", "0"},
+		{strings.NewReader("123425"), "", "4"},
+		{strings.NewReader("123123"), "", "12"},
+		{strings.NewReader("12131415"), "", "4"},
 	}
 	for _, t := range tests {
 		sol_1, sol_2 := process(t.input)
@@ -76,7 +74,6 @@ func main() {
 		if t.output_2 != "" && t.output_2 != sol_2 {
 			fmt.Printf("Part 2 test input \"%v\" failed: got \"%v\", wanted \"%v\"\n", t.input, sol_2, t.output_2)
 		}
-		fmt.Println()
 	}
 
 	part1, part2 := process(input)
