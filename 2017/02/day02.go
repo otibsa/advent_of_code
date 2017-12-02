@@ -16,29 +16,64 @@ type test_input struct {
 	output_2 string
 }
 
+func checksum(line string) (int, int) {
+	var low, high int = math.MaxInt64, math.MinInt64
+	_,_ = low, high
+	xs := []int{}  // part 2
+	var sum_1, sum_2 int
+
+	// part 1
+	for _, s := range strings.Fields(line) {
+		x, err := strconv.Atoi(s)
+		if err != nil {
+			continue
+		}
+
+		low = int(math.Min(float64(low), float64(x)))
+		high = int(math.Max(float64(high), float64(x)))
+
+		xs = append(xs, x)
+	}
+	sum_1 = high-low
+
+	// part 2
+	found := false
+	i, j := 0, 0
+	for i = 0; i < len(xs)-1; i++ {
+		
+		for j = i+1; j < len(xs); j++ {
+			// iterate over the remainder of the list
+			if xs[i] % xs[j] == 0 || xs[j] % xs[i] == 0 {
+				found = true
+				break
+			}
+		}
+		if found {
+			break
+		}
+	}
+	if found {
+		if xs[i] > xs[j] {
+			sum_2 = xs[i] / xs[j]
+		} else {
+			sum_2 = xs[j] / xs[i]
+		}
+	}
+
+	return sum_1, sum_2
+}
+
 func process(r io.Reader) (string, string) {
 	scanner := bufio.NewScanner(r)
 
-	var sum int64
-	_ = sum
+	var sum_1, sum_2 int
 	for scanner.Scan() {
-		var low, high int64 = math.MaxInt64, math.MinInt64
-		_,_ = low, high
+		ls_1, ls_2 := checksum(scanner.Text())
 
-		for _, s := range strings.Fields(scanner.Text()) {
-			x, err := strconv.Atoi(s)
-			if err != nil {
-				continue
-			}
-
-			low = int64(math.Min(float64(low), float64(x)))
-			high = int64(math.Max(float64(high), float64(x)))
-			fmt.Printf("x=%v    low=%v    high=%v    sum=%v\n", x, low, high, sum)
-		}
-		fmt.Println()
-		sum += high - low
+		sum_1 += ls_1
+		sum_2 += ls_2
 	}
-	return strconv.Itoa(int(sum)), ""
+	return strconv.Itoa(int(sum_1)), strconv.Itoa(int(sum_2))
 }
 
 func main() {
@@ -48,6 +83,7 @@ func main() {
 
 	tests := []test_input{
 		{strings.NewReader("5  \t1 9 5\n7 5 3\n2 4 6 8"), "18", ""},
+		{strings.NewReader("5 9 2 8\n9 4 7 3\n3 8 6 5"), "", "9"},
 	}
 	for _, t := range tests {
 		sol_1, sol_2 := process(t.input)
