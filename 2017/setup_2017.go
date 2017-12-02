@@ -3,11 +3,9 @@ package main
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"regexp"
 	"time"
 	"strconv"
 )
@@ -25,7 +23,7 @@ func setup_day(day int, session_cookie string) {
 
 	folder := fmt.Sprintf("%02v", day)
 	fmt.Println("Create folder", folder)
-	err = os.MkdirAll(folder, 0755)
+	err := os.MkdirAll(folder, 0755)
 	check_err(err)
 
 	fmt.Println("Create template .go file")
@@ -105,7 +103,7 @@ func check_err(e error) {
 
 	req.Header.Add("Cookie", session_cookie)
 	//response, err = http.G
-	response, err = client.Do(req)
+	response, err := client.Do(req)
 	check_err(err)
 
 	puzzle_input, err := os.Create(folder+"/input.txt")
