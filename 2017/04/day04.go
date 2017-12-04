@@ -47,6 +47,9 @@ func process(r io.Reader) (string, string) {
 				if words[i] == words[j] {
 					valid = false
 				}
+				if len(words[i]) != len(words[j]) {
+					continue
+				}
 				for _, anagram := range get_anagrams(words[j]) {
 					if words[i] == anagram {
 						valid_anagram = false
