@@ -24,6 +24,8 @@ func process(r io.Reader) (string, string) {
 			xs = append(xs, x)
 		}
 	}
+	xs2 := make([]int, len(xs))
+	copy(xs2, xs)
 
 	i := 0
 	ctr := 0
@@ -32,7 +34,18 @@ func process(r io.Reader) (string, string) {
 		ctr++
 	}
 	
-	return strconv.Itoa(ctr), ""
+	i = 0
+	ctr2 := 0
+	for i < len(xs2) {
+		if xs2[i] >= 3 {
+			i, xs2[i] = i+xs2[i], xs2[i]-1
+		} else {
+			i, xs2[i] = i+xs2[i], xs2[i]+1
+		}
+		ctr2++
+	}
+
+	return strconv.Itoa(ctr), strconv.Itoa(ctr2)
 }
 
 func main() {
@@ -42,6 +55,7 @@ func main() {
 
 	tests := []test_input{
 		{strings.NewReader("0\n3\n0\n1\n-3"), "5", ""},
+		{strings.NewReader("0\n3\n0\n1\n-3"), "", "10"},
 	}
 	for _, t := range tests {
 		sol_1, sol_2 := process(t.input)
