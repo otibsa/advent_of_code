@@ -44,11 +44,17 @@ func process(r io.Reader) (string, string) {
 	}
 
 	// cycle through reallocations
-	seen := map[string]bool{}
-	var cycle int
-	for cycle = 0; !seen[fmt.Sprintf("%v", banks)]; cycle++ {
-		seen[fmt.Sprintf("%v", banks)] = true
-		// fmt.Printf("% 3v: %v\n", cycle, banks)
+	seen := map[string]int{}
+	seen_before := false
+	previous_cycle := 0
+	cycle := 0
+	for cycle = 0; !seen_before; cycle++ {
+		previous_cycle, seen_before = seen[fmt.Sprintf("%v", banks)]
+		if seen_before {
+			break
+		}
+		seen[fmt.Sprintf("%v", banks)] = cycle
+		//fmt.Printf("% 3v: %v\n", cycle, banks)
 
 		index, blocks := max(banks)
 		banks[index] = 0
@@ -58,9 +64,9 @@ func process(r io.Reader) (string, string) {
 			blocks--
 		}
 	}
-	// fmt.Printf("% 3v: %v\n", cycle, banks)
+	//fmt.Printf("% 3v: %v\n", cycle, banks)
 
-	return strconv.Itoa(cycle), ""
+	return strconv.Itoa(cycle), strconv.Itoa(cycle - previous_cycle)
 }
 
 func main() {
@@ -69,7 +75,7 @@ func main() {
 	defer input.Close()
 
 	tests := []test_input{
-		{strings.NewReader("0\t2\t7\t0"), "5", ""},
+		{strings.NewReader("0\t2\t7\t0"), "5", "4"},
 	}
 	for _, t := range tests {
 		sol_1, sol_2 := process(t.input)
