@@ -20,6 +20,70 @@ type tree struct {
 	children []string
 }
 
+type tower_weight struct {
+	node_weight int
+	disc_load int
+}
+
+func (t tower_weight) sum() int {
+	return t.node_weight + t.disc_load
+}
+
+func get_tower_weight(node string, nodes map[string]*tree) (int, int) {
+	sum := 0
+	tower_weights := make([]tower_weight, len(nodes[node].children))
+	target := -1
+	for i, child := range nodes[node].children {
+
+		sub_tower, target_w := get_tower_weight(child, nodes)
+		if target_w != -1 {
+			// keep track of bad weight of child node
+			target = target_w
+		}
+
+		tower_weights[i] = tower_weight{
+			node_weight: nodes[child].weight,
+			disc_load: sub_tower,
+		}
+
+		sum += tower_weights[i].sum()
+	}
+
+	bad_index := -1
+	// find a weight sum that does not match the others in the list
+	for i := 2; i < len(tower_weights); i++ {
+		if tower_weights[0].sum() != tower_weights[1].sum() {
+			if tower_weights[i].sum() == tower_weights[0].sum() {
+				bad_index = 1
+				break
+			} else {
+				bad_index = 0
+				break
+			}
+		} else {
+			if tower_weights[i].sum() != tower_weights[0].sum() {
+				// found bad weight at index i!
+				bad_index = i
+				break
+			}
+		}
+	}
+	if bad_index != -1 {
+		if target == -1 {
+			// don't overwrite an existing target weight
+			if bad_index == 0 {
+				// target = weight of other towers minus weight of this child's disc
+				target = tower_weights[1].sum() - tower_weights[bad_index].disc_load
+			} else {
+				target = tower_weights[0].sum() - tower_weights[bad_index].disc_load
+			}
+			//fmt.Printf("index = %v at node %v, child: %v, child_weight: %v, child_disc_load: %v, target: %v, tower_weights: %v\n", bad_index, node, nodes[node].children[bad_index], tower_weights[bad_index].node_weight, tower_weights[bad_index].disc_load, target, tower_weights[2].sum())
+		}
+	}
+
+	return sum, target
+}
+
 func process(r io.Reader) (string, string) {
 	scanner := bufio.NewScanner(r)
 
@@ -58,7 +122,10 @@ func process(r io.Reader) (string, string) {
 		root = k
 		break
 	}
-	return root, ""
+
+	_, target := get_tower_weight(root, nodes)
+
+	return root, strconv.Itoa(target)
 }
 
 func main() {
@@ -67,7 +134,7 @@ func main() {
 	defer input.Close()
 
 	tests := []test_input{
-		{strings.NewReader("pbga (66)\nxhth (57)\nebii (61)\nhavc (66)\nktlj (57)\nfwft (72) -> ktlj, cntj, xhth\nqoyq (66)\npadx (45) -> pbga, havc, qoyq\ntknk (41) -> ugml, padx, fwft\njptl (61)\nugml (68) -> gyxo, ebii, jptl\ngyxo (61)\ncntj (57)\n"), "tknk", ""},
+		{strings.NewReader("pbga (66)\nxhth (57)\nebii (61)\nhavc (66)\nktlj (57)\nfwft (72) -> ktlj, cntj, xhth\nqoyq (66)\npadx (45) -> pbga, havc, qoyq\ntknk (41) -> ugml, padx, fwft\njptl (61)\nugml (68) -> gyxo, ebii, jptl\ngyxo (61)\ncntj (57)\n"), "tknk", "60"},
 	}
 	for _, t := range tests {
 		sol_1, sol_2 := process(t.input)
