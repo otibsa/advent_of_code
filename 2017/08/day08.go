@@ -30,6 +30,7 @@ func max_map(xs map[string]int) (max_key string, max_value int) {
 func process(r io.Reader) (string, string) {
 	scanner := bufio.NewScanner(r)
 	registers := map[string]int{}
+	max_value := 0
 	for scanner.Scan() {
 		line := strings.Fields(scanner.Text())
 		if len(line) < 7 {
@@ -76,9 +77,14 @@ func process(r io.Reader) (string, string) {
 		if cond(registers[cond_reg], cond_value) {
 			registers[reg] = op(registers[reg], diff)
 		}
+
+		_, mv := max_map(registers)
+		if mv > max_value {
+			max_value = mv
+		}
 	}
 	_, max_value_end := max_map(registers)
-	return strconv.Itoa(max_value_end), ""
+	return strconv.Itoa(max_value_end), strconv.Itoa(max_value)
 }
 
 func main() {
@@ -87,7 +93,7 @@ func main() {
 	defer input.Close()
 
 	tests := []test_input{
-		{strings.NewReader("b inc 5 if a > 1\na inc 1 if b < 5\nc dec -10 if a >= 1\nc inc -20 if c == 10"), "1", ""},
+		{strings.NewReader("b inc 5 if a > 1\na inc 1 if b < 5\nc dec -10 if a >= 1\nc inc -20 if c == 10"), "1", "10"},
 	}
 	for _, t := range tests {
 		sol_1, sol_2 := process(t.input)
