@@ -22,13 +22,14 @@ func process(r io.Reader) (string, string) {
 	group_level := 0
 	group_counter := 0
 	score := 0
+	garbage_counter := 0
 	for {
 		_, err := r.Read(buf)
 		if err == io.EOF {
 			break
 		}
 		c := buf[0]
-		// fmt.Printf("garb: %v, canc: %v, level: %v, ctr: %v, score: %v, READ: '%c'\n", in_garbage, next_canceled, group_level, group_counter, score, c)
+		// fmt.Printf("garb: %v, canc: %v, level: %v, ctr: %v, score: %v, gc: %v, READ: '%c'\n", in_garbage, next_canceled, group_level, group_counter, score, garbage_counter, c)
 
 		if next_canceled {
 			next_canceled = false
@@ -37,6 +38,7 @@ func process(r io.Reader) (string, string) {
 		switch c {
 		case '{':
 			if in_garbage {
+				garbage_counter++
 				break
 			}
 			group_counter++
@@ -44,24 +46,28 @@ func process(r io.Reader) (string, string) {
 			score += group_level // after increment
 		case '}':
 			if in_garbage {
+				garbage_counter++
 				break
 			}
 			group_level--
 		case '<':
 			if in_garbage {
+				garbage_counter++
 				break
 			}
 			in_garbage = true
 		case '>':
 			in_garbage = false
-		case ',':
 		case '!':
 			next_canceled = true
 		default:
+			if in_garbage {
+				garbage_counter++
+			}
 			//fmt.Printf("got '%c'\n", c)
 		}
 	}
-	return strconv.Itoa(score), ""
+	return strconv.Itoa(score), strconv.Itoa(garbage_counter)
 }
 
 func main() {
@@ -69,15 +75,22 @@ func main() {
 	check_err(err)
 	defer input.Close()
 
-	tests := []test_input{
-		{strings.NewReader("{}"), "1", ""},
-		{strings.NewReader("{{{}}}"), "6", ""},
-		{strings.NewReader("{{},{}}"), "5", ""},
-		{strings.NewReader("{{{},{},{{}}}"), "16", ""},
-		{strings.NewReader("{<a>,<a>,<a>,<a>}"), "1", ""},
-		{strings.NewReader("{{<ab>},{<ab>},{<ab>},{<ab>}}"), "9", ""},
-		{strings.NewReader("{{<!!>},{<!!>},{<!!>},{<!!>}}"), "9", ""},
-		{strings.NewReader("{{<a!>},{<a!>},{<a!>},{<ab>}}"), "3", ""},
+tests := []test_input{
+	{strings.NewReader("{}"), "1", ""},
+	{strings.NewReader("{{{}}}"), "6", ""},
+	{strings.NewReader("{{},{}}"), "5", ""},
+	{strings.NewReader("{{{},{},{{}}}"), "16", ""},
+	{strings.NewReader("{<a>,<a>,<a>,<a>}"), "1", ""},
+	{strings.NewReader("{{<ab>},{<ab>},{<ab>},{<ab>}}"), "9", ""},
+	{strings.NewReader("{{<!!>},{<!!>},{<!!>},{<!!>}}"), "9", ""},
+	{strings.NewReader("{{<a!>},{<a!>},{<a!>},{<ab>}}"), "3", ""},
+	{strings.NewReader("<>"), "", "0"},
+	{strings.NewReader("<random characters>"), "", "17"},
+	{strings.NewReader("<<<<>"), "", "3"},
+	{strings.NewReader("<{!>}>"), "", "2"},
+	{strings.NewReader("<!!>"), "", "0"},
+	{strings.NewReader("<!!!>>"), "", "0"},
+	{strings.NewReader(`<{o"i!a,<{i<a>`), "", "10"},
 	}
 	for _, t := range tests {
 		sol_1, sol_2 := process(t.input)
