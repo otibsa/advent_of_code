@@ -55,49 +55,58 @@ func abs(x int) int {
 	return sign(x)*x
 }
 
+func distance(pos_n, pos_ne, pos_se int) int {
+	to_cancel := 0
+	if sign(pos_n) == sign(pos_se) && pos_n != 0 && pos_se != 0 {
+		// fmt.Printf("n+se=ne\n")
+		to_cancel = sign(pos_n) * min(abs(pos_n), abs(pos_se))
+	} else if sign(pos_n) != sign(pos_ne) && pos_n != 0 && pos_ne != 0 {
+		// fmt.Printf("n-ne=-e\n")
+		to_cancel = sign(pos_n) * min(abs(pos_n), abs(pos_ne))
+	} else if sign(pos_ne) != sign(pos_se) && pos_ne != 0 && pos_se != 0 {
+		// fmt.Printf("ne-se=n\n")
+		to_cancel = sign(pos_se) * min(abs(pos_ne), abs(pos_se))
+	}
+	pos_ne += to_cancel
+	pos_n -= to_cancel
+	pos_se -= to_cancel
+
+	return  abs(pos_n) + abs(pos_ne) + abs(pos_se)
+}
+
 func process(r io.Reader) (string, string) {
 	scanner := bufio.NewScanner(r)
 	scanner.Split(SplitCommas)
 
-	count_n, count_ne, count_se := 0,0,0
+	pos_n, pos_ne, pos_se := 0,0,0
+	max_distance := 0
 	for scanner.Scan() {
 		s := strings.TrimSpace(scanner.Text())
 		switch s {
 			case "n":
-				count_n++
+				pos_n++
 			case "ne":
-				count_ne++
+				pos_ne++
 			case "se":
-				count_se++
+				pos_se++
 			case "s":
-				count_n--
+				pos_n--
 			case "sw":
-				count_ne--
+				pos_ne--
 			case "nw":
-				count_se--
+				pos_se--
 			default:
 				fmt.Printf("error: got \"%v\"\n", s)
 		}
+		m_dist := distance(pos_n, pos_ne, pos_se)
+		if m_dist > max_distance {
+			max_distance = m_dist
+		}
 	}
-	to_cancel := 0
-	if sign(count_n) == sign(count_se) && count_n != 0 && count_se != 0 {
-		// fmt.Printf("n+se=ne\n")
-		to_cancel = sign(count_n) * min(abs(count_n), abs(count_se))
-	} else if sign(count_n) != sign(count_ne) && count_n != 0 && count_ne != 0 {
-		// fmt.Printf("n-ne=-e\n")
-		to_cancel = sign(count_n) * min(abs(count_n), abs(count_ne))
-	} else if sign(count_ne) != sign(count_se) && count_ne != 0 && count_se != 0 {
-		// fmt.Printf("ne-se=n\n")
-		to_cancel = sign(count_se) * min(abs(count_ne), abs(count_se))
-	}
-	count_ne += to_cancel
-	count_n -= to_cancel
-	count_se -= to_cancel
 
-	steps := abs(count_n) + abs(count_ne) + abs(count_se)
-	// fmt.Printf("steps=%v\n\n\n", steps)
+	dist := distance(pos_n, pos_ne, pos_se)
 
-	return strconv.Itoa(steps), ""
+	return strconv.Itoa(dist), strconv.Itoa(max_distance)
 }
 
 func main() {
