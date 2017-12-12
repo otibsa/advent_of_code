@@ -45,6 +45,17 @@ func traverse_bfs(from node, pipes map[node]map[node]bool) []node {
 	return visited
 }
 
+func insert_groups(n node, groups [][]node) [][]node {
+	for i := range groups {
+		for _, m := range groups[i] {
+			if n == m {
+				return groups
+			}
+		}
+	}
+	return nil
+}
+
 func process(r io.Reader) (string, string) {
 	scanner := bufio.NewScanner(r)
 	// adjacency matrix
@@ -69,6 +80,7 @@ func process(r io.Reader) (string, string) {
 
 		// add elements to pipes
 		for i, v := range new_pipe {
+			//groups = update_groups(new_pipe, groups)
 			for j := i+1; j<len(new_pipe); j++ {
 				w := new_pipe[j]
 
@@ -88,7 +100,18 @@ func process(r io.Reader) (string, string) {
 	}
 	// fmt.Printf("pipes: %v\n", pipes)
 	reachable := traverse_bfs(0, pipes)
-	return strconv.Itoa(len(reachable)), ""
+
+	groups := [][]node{}
+	seen := []node{}
+	for n,_ := range pipes {
+		if n.in(seen) {
+			continue
+		}
+		group := traverse_bfs(n, pipes)
+		groups = append(groups, group)
+		seen = append(seen, group...)
+	}
+	return strconv.Itoa(len(reachable)), strconv.Itoa(len(groups))
 }
 
 func main() {
@@ -97,7 +120,7 @@ func main() {
 	defer input.Close()
 
 	tests := []test_input{
-		{strings.NewReader("0 <-> 2\n1 <-> 1\n2 <-> 0, 3, 4\n3 <-> 2, 4\n4 <-> 2, 3, 6\n5 <-> 6\n6 <-> 4, 5\n"), "6", ""},
+		{strings.NewReader("0 <-> 2\n1 <-> 1\n2 <-> 0, 3, 4\n3 <-> 2, 4\n4 <-> 2, 3, 6\n5 <-> 6\n6 <-> 4, 5\n"), "6", "2"},
 	}
 	for _, t := range tests {
 		sol_1, sol_2 := process(t.input)
