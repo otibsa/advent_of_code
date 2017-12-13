@@ -28,9 +28,17 @@ func printFirewall(fw map[int]*layer) {
 	fmt.Printf("]\n")
 }
 
+func mod(x, m int) int {
+	if x>0 {
+		return x%m
+	}
+	return (x+m+m*(-x/m)) % m
+}
+
 func process(r io.Reader) (string, string) {
 	scnr := bufio.NewScanner(r)
 	firewall := map[int]*layer{}
+	delayed_firewall := map[int]*layer{}
 	max_depth := 0
 	for scnr.Scan() {
 		line := strings.Split(scnr.Text(), ": ")
@@ -43,6 +51,7 @@ func process(r io.Reader) (string, string) {
 			continue
 		}
 		firewall[depth] = &layer{_range:_range, scanner:0}
+		delayed_firewall[depth] = &layer{_range: _range, scanner: 0}
 		if depth > max_depth {
 			max_depth = depth
 		}
@@ -62,13 +71,37 @@ func process(r io.Reader) (string, string) {
 		}
 
 		// move scanners
-		for i, l := range firewall {
-			firewall[i].scanner = (l.scanner+1) % (2*l._range-2) // down, then up
+		for _, l := range firewall {
+			l.scanner = (l.scanner+1) % (2*l._range-2) // down, then up
 		}
 	}
 
 	// fmt.Printf("severity: %v\n", severity)
-	return strconv.Itoa(severity), ""
+
+	delay := 0
+	for {
+		detected := -1
+		for d,l := range delayed_firewall {
+			if l.scanner == mod(-d, 2*l._range-2) {
+				// if the scanner in depth d is d steps before 0, then we will be detected
+				detected = d
+				break
+			}
+		}
+
+		if detected == -1 {
+			break
+		}
+
+
+		// move scanners
+		for _, l := range delayed_firewall {
+			l.scanner = (l.scanner+1) % (2*l._range-2) // down, then up
+		}
+		delay++
+	}
+
+	return strconv.Itoa(severity), strconv.Itoa(delay)
 }
 
 func main() {
@@ -77,7 +110,7 @@ func main() {
 	defer input.Close()
 
 	tests := []test_input{
-		{strings.NewReader("0: 3\n1: 2\n4: 4\n6: 4\n"), "24", ""},
+		{strings.NewReader("0: 3\n1: 2\n4: 4\n6: 4\n"), "24", "10"},
 	}
 	for _, t := range tests {
 		sol_1, sol_2 := process(t.input)
