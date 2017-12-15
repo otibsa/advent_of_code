@@ -14,6 +14,12 @@ type test_input struct {
 	output_2 string
 }
 
+type node struct {
+	x,y int
+}
+
+type field [128][128]int
+
 func count_ones(hex_string string) int {
 	sum := 0
 	for _,c := range hex_string {
@@ -53,6 +59,53 @@ func count_ones(hex_string string) int {
 	return sum
 }
 
+func hash2row(hash string) [128]int {
+	row := [128]int{}
+	for i:=0; i<32; i++ {
+		c := hash[i]
+		t := ""
+		switch c {
+		case '0':
+			t = "...."
+		case '1':
+			t = "...#"
+		case '2':
+			t = "..#."
+		case '3':
+			t = "..##"
+		case '4':
+			t = ".#.."
+		case '5':
+			t = ".#.#"
+		case '6':
+			t = ".##."
+		case '7':
+			t = ".###"
+		case '8':
+			t = "#..."
+		case '9':
+			t = "#..#"
+		case 'a':
+			t = "#.#."
+		case 'b':
+			t = "#.##"
+		case 'c':
+			t = "##.."
+		case 'd':
+			t = "##.#"
+		case 'e':
+			t = "###."
+		case 'f':
+			t = "####"
+		}
+		row[4*i+0] = int(t[0])
+		row[4*i+1] = int(t[1])
+		row[4*i+2] = int(t[2])
+		row[4*i+3] = int(t[3])
+	}
+	return row
+}
+
 func knot_hash(input string) string {
 	lengths := []byte(input)
 	lengths = append(lengths, []byte{17,31,73,47,23}...)
@@ -90,6 +143,93 @@ func knot_hash(input string) string {
 	return hex_hash
 }
 
+func (f field) show(compact bool) {
+	for i:=0; i<128; i++ {
+		for j:=0; j<128; j++ {
+			if compact {
+				fmt.Printf("%c", byte(f[i][j]))
+			} else {
+				if byte(f[i][j]) == '#' {
+					fmt.Printf("###")
+				} else if byte(f[i][j]) == '.' {
+					fmt.Printf("...")
+				} else {
+					fmt.Printf("% 3x", f[i][j])
+				}
+			}
+		}
+		fmt.Printf("\n")
+	}
+}
+
+func (n node) isInside() bool {
+	return n.x >= 0 && n.x < 128 && n.y >= 0 && n.y < 128
+}
+
+func (f field) get(n node) int {
+	return f[n.x][n.y]
+}
+
+func (f *field) set(n node, value int) {
+	if n.isInside() {
+		f[n.x][n.y] = value
+	}
+}
+
+func (n node) in(ns []node) bool {
+	for i := range ns {
+		if ns[i] == n {
+			return true
+		}
+	}
+	return false
+}
+
+func (f *field) flood(from node, value int) {
+	queue := []node{from}
+	visited := []node{from}
+	for {
+		if len(queue) == 0 {
+			break
+		}
+		n := queue[0]
+		if f.get(n) == '#' {
+			f.set(n, value)
+		}
+		queue = queue[1:]
+		neighbors := []node{
+			node{x:n.x, y:n.y-1},
+			node{x:n.x+1, y:n.y},
+			node{x:n.x, y:n.y+1},
+			node{x:n.x-1, y:n.y},
+		}
+		for _,nn := range neighbors {
+			if nn.isInside() && f.get(nn) == '#' {
+				if !nn.in(visited) {
+					visited = append(visited, nn)
+					queue = append(queue, nn)
+				}
+			}
+		}
+	}
+}
+
+func (f field) count_regions() int {
+	regions := 0
+	for i:=0; i<128; i++ {
+		for j:=0; j<128; j++ {
+			// start at i,j
+			n := node{x:i, y:j}
+			if f.get(n) != '#' {
+				continue
+			}
+			regions++
+			f.flood(n, regions)
+		}
+	}
+	//f.show(false)
+	return regions
+}
 
 func process(r io.Reader) (string, string) {
 	buf := make([]byte, 100)
@@ -102,13 +242,18 @@ func process(r io.Reader) (string, string) {
 	s = strings.TrimSpace(s)
 	square_count := 0
 
+	var f field
+
 	for i:=0; i<128; i++ {
 		t := fmt.Sprintf("%v-%v", s, i)
 		kh := knot_hash(t)
 		// fmt.Printf("knot_hash(\"%v\") = %v, ones: %v\n", t, kh, count_ones(kh))
 		square_count += count_ones(kh)
+		f[i] = hash2row(kh)
+		//fmt.Println(string(f[i][:]))
 	}
-	return strconv.Itoa(square_count), ""
+	region_count := f.count_regions()
+	return strconv.Itoa(square_count), strconv.Itoa(region_count)
 }
 
 func main() {
@@ -117,7 +262,7 @@ func main() {
 	defer input.Close()
 
 	tests := []test_input{
-		{strings.NewReader("flqrgnkx"), "8108", ""},
+		{strings.NewReader("flqrgnkx"), "8108", "1242"},
 	}
 	for _, t := range tests {
 		sol_1, sol_2 := process(t.input)
