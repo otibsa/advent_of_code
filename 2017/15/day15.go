@@ -15,7 +15,7 @@ type test_input struct {
 	output_2 string
 }
 
-func _gen(seed int, multiplier int, gen chan<- int, stop <-chan bool) {
+func _gen(seed int, multiplier int, modulus int, gen chan<- int, stop <-chan bool) {
 	x := seed
 	done := false
 	for {
@@ -32,15 +32,17 @@ func _gen(seed int, multiplier int, gen chan<- int, stop <-chan bool) {
 
 		x = (x*multiplier) % 0x7fffffff
 		// send x on generator channel:
-		gen <- x
+		if modulus == 0 || x % modulus == 0 {
+			gen <- x
+		}
 	}
 	close(gen)
 }
 
-func generator(seed int, multiplier int) (<-chan int, chan<- bool) {
+func generator(seed, multiplier, modulus int) (<-chan int, chan<- bool) {
 	gen := make(chan int)
 	stop := make(chan bool, 1)
-	go _gen(seed, multiplier, gen, stop)
+	go _gen(seed, multiplier, modulus, gen, stop)
 
 	return gen, stop
 }
@@ -57,8 +59,8 @@ func process(r io.Reader) (string, string) {
 		line := strings.Fields(scanner.Text())
 		seedB, _ = strconv.Atoi(line[len(line)-1])
 	}
-	cA, stopA := generator(seedA, 16807)
-	cB, stopB := generator(seedB, 48271)
+	cA, stopA := generator(seedA, 16807, 0)
+	cB, stopB := generator(seedB, 48271, 0)
 
 	count := 0
 	for i:=0; i<40000000; i++ {
@@ -72,7 +74,22 @@ func process(r io.Reader) (string, string) {
 	stopB <- true
 	close(stopB)
 
-	return strconv.Itoa(count), ""
+	cA, stopA = generator(seedA, 16807, 4)
+	cB, stopB = generator(seedB, 48271, 8)
+
+	count2 := 0
+	for i:=0; i<5000000; i++ {
+		xA, xB := <-cA, <-cB
+		if (xA & 0xffff) == (xB & 0xffff) {
+			count2++
+		}
+	}
+	stopA <- true
+	close(stopA)
+	stopB <- true
+	close(stopB)
+
+	return strconv.Itoa(count), strconv.Itoa(count2)
 }
 
 func main() {
@@ -81,7 +98,7 @@ func main() {
 	defer input.Close()
 
 	tests := []test_input{
-		//{strings.NewReader("A uses 65\nB uses 8921"), "588", ""},
+		{strings.NewReader("A uses 65\nB uses 8921"), "588", "309"},
 	}
 	for _, t := range tests {
 		sol_1, sol_2 := process(t.input)
