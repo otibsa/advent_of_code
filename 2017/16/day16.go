@@ -35,33 +35,23 @@ func SplitCommas(data []byte, atEOF bool) (advance int, token []byte, err error)
 	return start, nil, nil
 }
 
-func process(r io.Reader) (string, string) {
-	scanner := bufio.NewScanner(r)
-	scanner.Split(SplitCommas)
-
-	programs := make([]byte, program_count)
-	for i:=0; i<program_count; i++ {
-		programs[i] = 'a'+byte(i)
-	}
-	tmp := make([]byte, program_count)
-
-	for scanner.Scan() {
-		s := strings.TrimSpace(scanner.Text())
-		//fmt.Println("programs: %v\n", string(programs))
+func apply_moves(xs []byte, moves []string) {
+	tmp := make([]byte, len(xs))
+	for _,move := range moves {
 		switch {
-		case s[0] == 's':
-			spin_size, err := strconv.Atoi(string(s[1:]))
+		case move[0] == 's':
+			spin_size, err := strconv.Atoi(string(move[1:]))
 			if err != nil {
 				break
 			}
-			copy(tmp, programs)
-			for i:=0; i<program_count; i++ {
-				programs[(i+spin_size)%len(programs)] = tmp[i]
+			copy(tmp, xs)
+			for i:=0; i<len(xs); i++ {
+				xs[(i+spin_size)%len(xs)] = tmp[i]
 			}
 
-		case s[0] == 'x':
-			sA := strings.Split(string(s[1:]), "/")[0]
-			sB := strings.Split(string(s[1:]), "/")[1]
+		case move[0] == 'x':
+			sA := strings.Split(string(move[1:]), "/")[0]
+			sB := strings.Split(string(move[1:]), "/")[1]
 			A, err := strconv.Atoi(sA)
 			if err != nil {
 				break
@@ -70,26 +60,73 @@ func process(r io.Reader) (string, string) {
 			if err != nil {
 				break
 			}
-			programs[A], programs[B] = programs[B], programs[A]
+			xs[A], xs[B] = xs[B], xs[A]
 
-		case s[0] == 'p':
-			pA := []byte(strings.Split(string(s[1:]), "/")[0])[0]
-			pB := []byte(strings.Split(string(s[1:]), "/")[1])[0]
+		case move[0] == 'p':
+			pA := []byte(strings.Split(string(move[1:]), "/")[0])[0]
+			pB := []byte(strings.Split(string(move[1:]), "/")[1])[0]
 			j := -1
-			for i:=0; i<program_count; i++ {
-				if programs[i] == pA || programs[i] == pB {
+			for i:=0; i<len(xs); i++ {
+				if xs[i] == pA || xs[i] == pB {
 					if j == -1 {
 						j = i
 					} else {
-						programs[j], programs[i] = programs[i], programs[j]
+						xs[j], xs[i] = xs[i], xs[j]
 						break
 					}
 				}
 			}
 		}
 	}
-	//fmt.Println("programs: %v\n", string(programs))
-	return string(programs), ""
+}
+
+func process(r io.Reader) (string, string) {
+	scanner := bufio.NewScanner(r)
+	scanner.Split(SplitCommas)
+
+	programs := make([]byte, program_count)
+	initial_programs := make([]byte, program_count)
+	programs_one_round := make([]byte, program_count)
+
+	for i:=0; i<program_count; i++ {
+		programs[i] = 'a'+byte(i)
+	}
+	copy(initial_programs, programs)
+
+	moves := []string{}
+	for scanner.Scan() {
+		move := strings.TrimSpace(scanner.Text())
+		moves = append(moves, move)
+	}
+
+	cycle_length := 1
+	// fmt.Printf("000: %v\n", string(programs))
+	for round:=1; round<100; round++ {
+		apply_moves(programs, moves)
+		// fmt.Printf("%03v: %v\n", round, string(programs))
+		if round == 1 {
+			// part 1
+			copy(programs_one_round, programs)
+		}
+		all_same := true
+		for i,_ := range programs {
+			if programs[i] != initial_programs[i] {
+				all_same = false
+				break
+			}
+		}
+		if all_same {
+			cycle_length = round
+			break
+		}
+	}
+
+	copy(programs, initial_programs)
+	for round:=0; round<(1000000000 % cycle_length); round++ {
+		apply_moves(programs, moves)
+	}
+
+	return string(programs_one_round), string(programs)
 }
 
 func main() {
@@ -99,7 +136,7 @@ func main() {
 
 	program_count = 5
 	tests := []test_input{
-		{strings.NewReader("s1,x3/4,pe/b"), "baedc", ""},
+		// {strings.NewReader("s1,x3/4,pe/b"), "baedc", "ceadb"},
 	}
 	for _, t := range tests {
 		sol_1, sol_2 := process(t.input)
