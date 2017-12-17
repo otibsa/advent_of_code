@@ -46,7 +46,18 @@ func process(r io.Reader) (string, string) {
 		pos = (pos+1) % len(buffer)
 	}
 
-	return strconv.Itoa(buffer[(pos+1)%len(buffer)]), ""
+	// part 2
+	pos2 := 0
+	value_at_1 := -1
+	for new_value:=1; new_value<=50000000; new_value++ {
+		pos2 = (pos2+steps) % new_value
+		pos2 = (pos2+1) % (new_value+1)
+		if pos2 == 1 {
+			value_at_1 = new_value
+		}
+	}
+
+	return strconv.Itoa(buffer[(pos+1)%len(buffer)]), strconv.Itoa(value_at_1)
 }
 
 func main() {
@@ -55,7 +66,7 @@ func main() {
 	defer input.Close()
 
 	tests := []test_input{
-		{strings.NewReader("3"), "638", ""},
+		//{strings.NewReader("3"), "638", ""},
 	}
 	for _, t := range tests {
 		sol_1, sol_2 := process(t.input)
