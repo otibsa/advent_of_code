@@ -7,6 +7,7 @@ import (
 	"strings"
 	"bufio"
 	"strconv"
+	"time"
 )
 
 type test_input struct {
@@ -57,7 +58,6 @@ func do(line []string, registers map[byte]int, pc *int, pid int, nr_sent *int, c
 		}
 
 	case "snd":
-		//fmt.Printf("(snd %v), registers: %v\n", frequency_reg, registers)
 		if c_send == nil {
 			registers[frequency_reg] = x
 		} else {
@@ -73,9 +73,13 @@ func do(line []string, registers map[byte]int, pc *int, pid int, nr_sent *int, c
 				*pc = -1
 			}
 		} else {
-			// hacky: just print nr_sent before we might run into a deadlock
-			fmt.Printf("[%v] nr_sent = %v\n", pid, *nr_sent)
-			registers[regX] = <-c_recv
+			select {
+				case v := <-c_recv:
+					registers[regX] = v
+				case <-time.After(time.Second * 5):
+					// probably deadlock
+					*pc = -1
+			}
 		}
 	}
 }
@@ -91,6 +95,8 @@ func p(pid int, instructions [][]string, cs []chan int, done chan int) {
 
 	if done != nil {
 		done <- nr_sent
+		close(done)
+		close(cs[pid])
 	}
 }
 
@@ -114,9 +120,8 @@ func process(r io.Reader) (string, string) {
 	go p(0, instructions, cs, done[0])
 	go p(1, instructions, cs, done[1])
 
-	<-done[0]
-	part2 := <-done[1]
-	return strconv.Itoa(registers[recovered_frequency_reg]), strconv.Itoa(part2)
+	nr_sent := <-done[1]
+	return strconv.Itoa(registers[recovered_frequency_reg]), strconv.Itoa(nr_sent)
 }
 
 func main() {
@@ -134,14 +139,14 @@ set a 0
 rcv a
 jgz a -1
 set a 1
-jgz a -2`), "4", ""},
+jgz a -2`), "4", ""},*/
 		{strings.NewReader(`snd 1
 		snd 2
 		snd p
 		rcv a
 		rcv b
 		rcv c
-		rcv d`), "", "3"},*/
+		rcv d`), "", "3"},
 	}
 	for _, t := range tests {
 		sol_1, sol_2 := process(t.input)
