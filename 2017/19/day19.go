@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 	"bufio"
+	"strconv"
 )
 
 type test_input struct {
@@ -15,7 +16,7 @@ type test_input struct {
 }
 
 type position struct {
-	x,y,heading int
+	x,y,heading,steps int
 }
 
 func pr(field [][]byte) {
@@ -70,6 +71,7 @@ func (p *position) next(field [][]byte) byte {
 			p.x = p.x-1
 		}
 	}
+	p.steps++
 	return field[p.y][p.x]
 }
 
@@ -98,7 +100,7 @@ func process(r io.Reader) (string, string) {
 		}
 	}
 	// fmt.Println(string(letters))
-	return string(letters), ""
+	return string(letters), strconv.Itoa(p.steps) 
 }
 
 func main() {
@@ -113,7 +115,7 @@ func main() {
  F---|----E|--+ 
      |  |  |  D 
      +B-+  +--+ 
-                `), "ABCDEF", ""},
+                `), "ABCDEF", "38"},
 	}
 	for _, t := range tests {
 		sol_1, sol_2 := process(t.input)
