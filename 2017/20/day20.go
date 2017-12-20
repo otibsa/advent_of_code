@@ -22,6 +22,10 @@ type particle struct {
 	aX, aY, aZ int
 }
 
+type position struct {
+	pX, pY, pZ int
+}
+
 func abs(x int) int {
 	if x >= 0 {
 		return x
@@ -30,7 +34,7 @@ func abs(x int) int {
 	}
 }
 
-func min(ps []particle) (int,int) {
+func min(ps map[int]*particle) (int,int) {
 	m_index,m_dist := 0, ps[0].dist()
 	for i:=1; i<len(ps); i++ {
 		d := ps[i].dist()
@@ -45,6 +49,10 @@ func (p particle) dist() int {
 	return abs(p.pX) + abs(p.pY) + abs(p.pZ)
 }
 
+func (p particle) collidesWith(p2 particle) bool {
+	return p.pX == p2.pX && p.pY == p2.pY && p.pZ == p2.pZ
+}
+
 func tick(p *particle) {
 	p.vX += p.aX
 	p.vY += p.aY
@@ -54,11 +62,34 @@ func tick(p *particle) {
 	p.pZ += p.vZ
 }
 
+func collide(ps map[int]*particle) {
+	for i := range ps {
+		if ps[i] == nil {
+			continue
+		}
+		i_collides := false
+		for j := range ps {
+			if ps[j] == nil || i == j {
+				continue
+			}
+			if ps[i].collidesWith(*ps[j]) {
+				i_collides = true
+				delete(ps, j)
+			}
+		}
+		if i_collides {
+			delete(ps, i)
+		}
+	}
+}
+
 func process(r io.Reader) (string, string) {
 	scanner := bufio.NewScanner(r)
 	lineRE,_ := regexp.Compile("p=<[[:space:]]*(-?[[:digit:]]+),(-?[[:digit:]]+),(-?[[:digit:]]+)>, v=<[[:space:]]*(-?[[:digit:]]+),(-?[[:digit:]]+),(-?[[:digit:]]+)>, a=<[[:space:]]*(-?[[:digit:]]+),(-?[[:digit:]]+),(-?[[:digit:]]+)>")
 
-	particles := []particle{}
+	particles := map[int]*particle{}
+	particles2 := map[int]*particle{}
+	count := 0
 
 	for i:=0; scanner.Scan(); i++ {
 		line := scanner.Text()
@@ -72,25 +103,38 @@ func process(r io.Reader) (string, string) {
 		aX,_ := strconv.Atoi(match[7])
 		aY,_ := strconv.Atoi(match[8])
 		aZ,_ := strconv.Atoi(match[9])
-		particles = append(particles, particle{pX:pX, pY:pY, pZ:pZ, vX:vX, vY:vY, vZ:vZ, aX:aX, aY:aY, aZ:aZ})
+		particles[i] = &particle{pX:pX, pY:pY, pZ:pZ, vX:vX, vY:vY, vZ:vZ, aX:aX, aY:aY, aZ:aZ}
+		particles2[i] = &particle{pX:pX, pY:pY, pZ:pZ, vX:vX, vY:vY, vZ:vZ, aX:aX, aY:aY, aZ:aZ}
 	}
 
 	min_index, min_dist := min(particles)
-	//fmt.Printf("[   0] closest: %+v (%v)\n", particles[min_index], min_dist)
 	for step:=1; step<1000; step++ {
-		tick(&particles[0])
+		tick(particles[0])
 		min_index, min_dist = 0, particles[0].dist()
 		for i:=1; i<len(particles); i++ {
-			tick(&particles[i])
+			tick(particles[i])
 			d := particles[i].dist()
 			if d < min_dist {
 				min_index, min_dist = i, d
 			}
 		}
-		//fmt.Printf("[% 4v] closest: %+v (index=%v, dist=%v)\n", step, particles[min_index], min_index, min_dist)
+
+		count = 0
+		for i := range particles2 {
+			count++
+			tick(particles2[i])
+		}
+		//fmt.Printf("[% 4v] count = %v\n", step, count)
+		collide(particles2)
+
 	}
 
-	return strconv.Itoa(min_index), ""
+	count = 0
+	for _ = range particles2 {
+		count++
+	}
+
+	return strconv.Itoa(min_index), strconv.Itoa(count)
 }
 
 func main() {
@@ -99,7 +143,8 @@ func main() {
 	defer input.Close()
 
 	tests := []test_input{
-		{strings.NewReader("p=< 3,0,0>, v=< 2,0,0>, a=<-1,0,0>\np=< 4,0,0>, v=< 0,0,0>, a=<-2,0,0>\n"), "0", ""},
+		//{strings.NewReader("p=< 3,0,0>, v=< 2,0,0>, a=<-1,0,0>\np=< 4,0,0>, v=< 0,0,0>, a=<-2,0,0>\n"), "0", ""},
+		{strings.NewReader("p=<-6,0,0>, v=< 3,0,0>, a=< 0,0,0>\np=<-4,0,0>, v=< 2,0,0>, a=< 0,0,0>\np=<-2,0,0>, v=< 1,0,0>, a=< 0,0,0>\np=< 3,0,0>, v=<-1,0,0>, a=< 0,0,0>\n"), "", "1"},
 	}
 	for _, t := range tests {
 		sol_1, sol_2 := process(t.input)
