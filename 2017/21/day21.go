@@ -173,10 +173,14 @@ func process(r io.Reader) (string, string) {
 		rules[line[0]] = line[1]
 	}
 
-	for step:=1; step<=5; step++ {
+	c5 := 0
+	for step:=1; step<=18; step++ {
 		f = do_step(f, rules)
+		if step == 5 {
+			c5 = f.count()
+		}
 	}
-	return strconv.Itoa(f.count()), ""
+	return strconv.Itoa(c5), strconv.Itoa(f.count())
 }
 
 func main() {
