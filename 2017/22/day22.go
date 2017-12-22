@@ -24,14 +24,19 @@ type carrier struct {
 	heading int
 }
 
-type field map[position]bool
+type field map[position]byte
 
 func (f field) p(start position, current position, size int) {
 	for y:=0; y<size; y++ {
 		for x:=0; x<size; x++ {
 			n := "."
-			if f[position{x:x+start.x, y:y+start.y}] {
+			switch f[position{x:x+start.x, y:y+start.y}] {
+			case 1:
+				n = "W"
+			case 2:
 				n = "#"
+			case 3:
+				n = "F"
 			}
 			if current.x == x+start.x && current.y == y+start.y {
 				fmt.Printf("[%s]", n)
@@ -52,7 +57,7 @@ func process(r io.Reader) (string, string) {
 		line := strings.TrimSpace(scanner.Text())
 		for x:=0; x<len(line); x++ {
 			if line[x] == byte('#') {
-				f[position{x:x, y:y}] = true
+				f[position{x:x, y:y}] = 2
 			}
 		}
 		y++
@@ -61,16 +66,23 @@ func process(r io.Reader) (string, string) {
 	// start at middle, heading north
 	c := carrier{heading:0, pos:position{x:y/2, y:y/2}}
 	infection_counter := 0
-	for burst:=1; burst<=10000; burst++{
+	for burst:=1; burst<=10000000; burst++{
 		turn := 1
 		// turn right or left
-		if !f[c.pos] {
-			infection_counter++
+		switch f[c.pos] {
+		case 0:
 			turn = -1
+		case 1:
+			turn = 0
+			infection_counter++
+		case 2:
+			turn = 1
+		case 3:
+			turn = 2
 		}
 		c.heading = (c.heading+turn+4) % 4
 		// invert status of current node
-		f[c.pos] = !f[c.pos]
+		f[c.pos] = (f[c.pos]+4+1) % 4
 
 		// go one step
 		switch c.heading {
@@ -83,9 +95,12 @@ func process(r io.Reader) (string, string) {
 		case 3:
 			c.pos.x--
 		}
+		// fmt.Printf("------------------------------- [%04v] h:%v -------------------------------\n", burst, c.heading)
+		// fmt.Printf("c: %+v, f[c.pos]: %v\n", c, f[c.pos])
+		// f.p(position{x:-2, y:-2}, c.pos, 7)
 	}
 
-	return strconv.Itoa(infection_counter), ""
+	return "", strconv.Itoa(infection_counter)
 }
 
 func main() {
@@ -94,7 +109,7 @@ func main() {
 	defer input.Close()
 
 	tests := []test_input{
-		{strings.NewReader("..#\n#..\n...\n"), "5587", ""},
+		{strings.NewReader("..#\n#..\n...\n"), "", "2511944"},
 	}
 	for _, t := range tests {
 		sol_1, sol_2 := process(t.input)
