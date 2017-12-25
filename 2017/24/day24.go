@@ -27,42 +27,48 @@ func get_strength(bridge []component) int {
 	return strength
 }
 
-func finish_bridge(port int, built_bridge []component, cs map[component]int) []component {
-
+func finish_bridge(port int, built_bridge []component, cs map[component]int, longest bool) []component {
 	possible_bridges := [][]component{built_bridge}
-	// fmt.Printf("\n\nfinish_bridge(%v, %v, %v)\n", port, built_bridge, cs)
 	for c,n := range cs {
 		if n > 0 && (c.portA == port || c.portB == port) {
-			// fmt.Printf("c = %v\n", c)
 			other_port := c.portB
 			if c.portB == port {
 				other_port = c.portA
 			}
 			cs[c]--
-			b := finish_bridge(other_port, append(built_bridge, c), cs)
-			// fmt.Printf("b = %v\n", b)
-			if len(b) > 0 {
-				possible_bridges = append(possible_bridges,  b)
-			}
+			b := finish_bridge(other_port, append(built_bridge, c), cs, longest)
+			possible_bridges = append(possible_bridges,  b)
 			cs[c]++
 		}
 	}
 
 	best_strength, ix := get_strength(possible_bridges[0]), 0
-	for i,b := range possible_bridges {
-		s := get_strength(b)
-		if s > best_strength {
-			best_strength, ix = s, i
+	if longest {
+		best_length := len(possible_bridges[0])
+		for i,b := range possible_bridges {
+			l := len(b)
+			s := get_strength(b)
+			if l > best_length || (l == best_length && s > best_strength) {
+				best_length, best_strength, ix = l, s, i
+			}
+		}
+	} else {
+		for i,b := range possible_bridges {
+			s := get_strength(b)
+			if s > best_strength {
+				best_strength, ix = s, i
+			}
 		}
 	}
-	return possible_bridges[ix]
+	best_bridge := make([]component, len(possible_bridges[ix]))
+	copy(best_bridge, possible_bridges[ix])
 
+	return best_bridge
 }
 
-func build_bridge(cs map[component]int) int {
-	bridge := finish_bridge(0, []component{}, cs)
+func build_bridge(cs map[component]int, longest bool) int {
+	bridge := finish_bridge(0, []component{}, cs, longest)
 	strength := get_strength(bridge)
-	// fmt.Printf("strongest bridge: %v (%v)\n", bridge, strength)
 	return strength
 }
 
@@ -86,8 +92,10 @@ func process(r io.Reader) (string, string) {
 		cs[component{portA: a, portB: b}]++
 	}
 
-	strength := build_bridge(cs)
-	return strconv.Itoa(strength), ""
+	strength := build_bridge(cs, false)
+	strength_part2 := build_bridge(cs, true)
+
+	return strconv.Itoa(strength), strconv.Itoa(strength_part2)
 }
 
 func main() {
@@ -96,7 +104,7 @@ func main() {
 	defer input.Close()
 
 	tests := []test_input{
-		{strings.NewReader("0/2\n2/2\n2/3\n3/4\n3/5\n0/1\n10/1\n9/10\n"), "31", ""},
+		{strings.NewReader("0/2\n2/2\n2/3\n3/5\n3/4\n0/1\n10/1\n9/10\n"), "31", "19"},
 	}
 	for _, t := range tests {
 		sol_1, sol_2 := process(t.input)
