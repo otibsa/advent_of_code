@@ -20,6 +20,11 @@ def get_lines(func):
 def part1(lines):
     return max(decode_seat(bsp) for bsp in lines)
 
+@get_lines
+def part2(lines):
+    seat_ids = [decode_seat(bsp) for bsp in lines]
+    return find_gap(seat_ids)
+
 def decode_seat(bsp):
     """
     The Binary Seat Partition is a binary number with 'F'/'L' instead of '0' and
@@ -36,6 +41,17 @@ def decode_seat(bsp):
     # alternative with O(4*n):
     # return int(bsp.replace("F","0").replace("L","0").replace("B","1").replace("R","1"), 2)
 
+def find_gap(xs):
+    """
+    Preconditions: There is only a single number missing in the list, it's not
+    the first and not the last
+    """
+    xs = sorted(xs)
+    offset = xs[0]
+    for i, x in enumerate(xs):
+        if x-i > offset:
+            return x-1
+
 def test_examples():
     for func_name, example_dict in EXAMPLES.items():
         for input, output in example_dict.items():
@@ -45,3 +61,4 @@ if __name__ == "__main__":
     with open(os.path.dirname(os.path.realpath(__file__))+"/input.txt") as f:
         input = f.read()
         print(part1(input))
+        print(part2(input))
