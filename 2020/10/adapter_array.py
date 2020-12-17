@@ -51,6 +51,54 @@ EXAMPLES = {
         3
         """: 220
     },
+    "part2": {
+        """\
+        16
+        10
+        15
+        5
+        1
+        11
+        7
+        19
+        6
+        12
+        4
+        """: 8,
+        """\
+        28
+        33
+        18
+        42
+        31
+        14
+        46
+        20
+        48
+        47
+        24
+        23
+        49
+        45
+        19
+        38
+        39
+        11
+        1
+        32
+        25
+        35
+        8
+        17
+        7
+        9
+        4
+        2
+        34
+        10
+        3
+        """:19208
+    }
 }
 
 def get_lines(func):
@@ -71,7 +119,29 @@ def part1(lines):
 
 @get_lines
 def part2(lines):
-    pass
+    adapters = sorted(int(i) for i in lines)
+    adapters = [0] + adapters + [adapters[-1]+3]
+    diffs = [m-n for n,m in zip(adapters, adapters[1:])]
+    count_ones = 0
+    combinations = 1
+    for d in diffs:
+        if d == 1:
+            count_ones += 1
+        elif d == 3:
+            combinations *= count_valid(count_ones)
+            count_ones = 0
+    return combinations
+
+def count_valid(n):
+    if n == 0:
+        return 1
+    if n == 1:
+        return 1
+    if n == 2:
+        return 2
+    if n == 3:
+        return 4
+    return 2*count_valid(n-1) - count_valid(n-4)
 
 def test_examples():
     for func_name, example_dict in EXAMPLES.items():
