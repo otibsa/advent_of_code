@@ -13,6 +13,15 @@ EXAMPLES = {
         F11
         """: 25
     },
+    "part2": {
+        """\
+        F10
+        N3
+        F7
+        R90
+        F11
+        """: 286
+    },
 }
 
 def get_lines(func):
@@ -32,18 +41,40 @@ def part1(lines):
 
 @get_lines
 def part2(lines):
-    pass
+    state = {
+        "x": 0,
+        "y": 0,
+        "waypoint": {
+            "x": 10,
+            "y": 1
+        }
+    }
+    navigate(state, instructions=lines, debug=False)
+    return manhattan_distance(0,0, state["x"], state["y"])
 
 def manhattan_distance(x1, y1, x2, y2):
     return abs(x2-x1)+abs(y2-y1)
 
 def cmd_r(arg, state):
-    state["heading"] = (state["heading"] + arg + 360) % 360
+    arg = (arg+360)%360
+    if "waypoint" in state:
+        if arg == 90:
+            state["waypoint"]["x"], state["waypoint"]["y"] = state["waypoint"]["y"], -state["waypoint"]["x"]
+        if arg == 180:
+            state["waypoint"]["x"], state["waypoint"]["y"] = -state["waypoint"]["x"], -state["waypoint"]["y"]
+        if arg == 270:
+            state["waypoint"]["x"], state["waypoint"]["y"] = -state["waypoint"]["y"], state["waypoint"]["x"]
+        return
+    state["heading"] = (state["heading"] + arg) % 360
 
 def cmd_l(arg, state):
-    state["heading"] = (state["heading"] - arg + 360) % 360
+    cmd_r(-arg, state)
 
 def cmd_f(arg, state, heading=None):
+    if "waypoint" in state:
+        state["x"] += arg*state["waypoint"]["x"]
+        state["y"] += arg*state["waypoint"]["y"]
+        return
     if heading is None:
         heading = state["heading"]
     if heading == 0:
@@ -56,15 +87,27 @@ def cmd_f(arg, state, heading=None):
         state["x"] -= arg
 
 def cmd_n(arg, state):
+    if "waypoint" in state:
+        state["waypoint"]["y"] += arg
+        return
     cmd_f(arg,state,heading=0)
 
 def cmd_e(arg, state):
+    if "waypoint" in state:
+        state["waypoint"]["x"] += arg
+        return
     cmd_f(arg,state,heading=90)
 
 def cmd_s(arg, state):
+    if "waypoint" in state:
+        cmd_n(-arg, state)
+        return
     cmd_f(arg,state,heading=180)
 
 def cmd_w(arg, state):
+    if "waypoint" in state:
+        cmd_e(-arg, state)
+        return
     cmd_f(arg,state,heading=270)
 
 def navigate(state, instructions, debug=False):
@@ -96,7 +139,10 @@ def navigate(state, instructions, debug=False):
 
         # execute
         if debug:
-            print(f"x={state['x']: 4}, y={state['y']: 4}, heading={state['heading']:03}, {instruction}")
+            if "waypoint" in state:
+                print(f"x={state['x']: 4}, y={state['y']: 4}, waypoint={state['waypoint']}, {instruction}")
+            else:
+                print(f"x={state['x']: 4}, y={state['y']: 4}, heading={state['heading']:03}, {instruction}")
         cmd(arg, state)
 
 def test_examples():
