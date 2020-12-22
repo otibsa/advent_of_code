@@ -13,6 +13,14 @@ EXAMPLES = {
         mem[8] = 0
         """: 165
     },
+    "part2": {
+        """\
+        mask = 000000000000000000000000000000X1001X
+        mem[42] = 100
+        mask = 00000000000000000000000000000000X0XX
+        mem[26] = 1
+        """: 208
+    }
 }
 
 def get_lines(func):
@@ -23,31 +31,46 @@ def get_lines(func):
 @get_lines
 def part1(lines):
     state = {
-        "clear_mask": 2*36-1,
-        "set_mask": 0,
+        "mask": "X"*36,
         "mem": {}
     }
     run(state, lines)
     return sum(state["mem"].values())
 
-def run(state, program):
+@get_lines
+def part2(lines):
+    state = {
+        "mask": "X"*36,
+        "mem": {}
+    }
+    run(state, lines, version=2)
+    return sum(state["mem"].values())
+
+def run(state, program, version=1):
     for instruction in program:
         if m := re.match(r"^mask = (.*)$", instruction):
-            state["set_mask"] = int(m.group(1).replace("X", "0"), 2)
-            state["clear_mask"] = int(m.group(1).replace("X", "1"), 2)
+            state["mask"] = m.group(1)
         elif m:= re.match(r"mem\[([0-9]+)\] = ([0-9]+)", instruction):
             addr = int(m.group(1))
             value = int(m.group(2))
-            tmp = value
-            value |= state["set_mask"]
-            value &= state["clear_mask"]
-            state["mem"][addr] = value
+            set_mask = int(state["mask"].replace("X", "0"), 2)
+            clear_mask = int(state["mask"].replace("X", "1"), 2)
+            if version == 1:
+                value |= set_mask
+                value &= clear_mask
+                state["mem"][addr] = value
+            elif version == 2:
+                addr |= set_mask
+                addresses = [addr]
+                for i, b in enumerate(state['mask'][::-1]):
+                    if b == "X":
+                        # for each address already in the list, flip the bit,
+                        # and add the new address to the list
+                        addresses += [a^(1<<i) for a in addresses]
+                for a in addresses:
+                    state["mem"][a] = value
         else:
             print(f"Unknown instruction: {instruction}")
-
-@get_lines
-def part2(lines):
-    pass
 
 def test_examples():
     for func_name, example_dict in EXAMPLES.items():
