@@ -6,6 +6,12 @@ EXAMPLES = {
 A Y
 B X
 C Z""": 15
+    },
+    "part2": {
+        """\
+A Y
+B X
+C Z""": 12
     }
 }
 
@@ -32,7 +38,18 @@ def part1(lines):
     return score
 
 def part2(lines):
-    pass
+    score = 0
+    for line in lines:
+        if line == "":
+            continue
+        col1, col2 = line.strip().split(" ")
+        col1 = ord(col1) - ord("A")
+        col2 = ord(col2) - ord("X")
+
+        score += (col1 + col2-1)%3 + 1
+        score += col2*3
+
+    return score
 
 if __name__ == "__main__":
     filename = os.path.dirname(os.path.realpath(__file__))+"/input.txt"
@@ -41,3 +58,4 @@ if __name__ == "__main__":
             output = globals()[part](input.split("\n"))
             assert output == expected_output, f"{part}(...)={output}, should have been {expected_output}"
     print(part1(line_generator(filename)))
+    print(part2(line_generator(filename)))
