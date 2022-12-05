@@ -16,6 +16,18 @@ move 2 from 2 to 1
 move 1 from 1 to 2
 """: "CMZ"
     },
+    "part2": {
+        """\
+    [D]    
+[N] [C]    
+[Z] [M] [P]
+ 1   2   3 
+
+move 1 from 2 to 1
+move 3 from 1 to 3
+move 2 from 2 to 1
+move 1 from 1 to 2""": "MCD"
+    },
 }
 
 def line_generator(filename):
@@ -28,9 +40,10 @@ def part1(lines):
     return "".join(stacks[i][0] for i in range(len(stacks.keys())))
 
 def part2(lines):
-    pass
+    stacks = parse_stacks(lines, crane_model="9001")
+    return "".join(stacks[i][0] for i in range(len(stacks.keys())))
 
-def parse_stacks(lines):
+def parse_stacks(lines, crane_model="9000"):
     stacks = defaultdict(list)
     order_func = list if crane_model == "9001" else reversed
     for line in lines:
@@ -38,7 +51,7 @@ def parse_stacks(lines):
             stacks[m.start()//4] += [m.group(1)]
         if m := re.match(r"move (.+) from (.+) to (.+)", line):
             n, source, dest = map(int, m.groups())
-            stacks[dest-1] = list(reversed(stacks[source-1][:n]))+stacks[dest-1]
+            stacks[dest-1] = list(order_func(stacks[source-1][:n]))+stacks[dest-1]
             stacks[source-1] = stacks[source-1][n:]
     return stacks
 
