@@ -10,6 +10,13 @@ EXAMPLES = {
         "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg": 10,
         "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw": 11
     },
+    "part2": {
+        "mjqjpqmgbljsphdztnvjfqwrcgsmlb": 19,
+        "bvwbjplbgvbhsrlpgdmjqwftvncz": 23,
+        "nppdvjthqldpwncqszvftbrmjlhg": 23,
+        "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg": 29,
+        "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw": 26,
+    }
 }
 
 def line_generator(filename):
@@ -21,12 +28,12 @@ def part1(lines):
     return find_marker(next(lines))
 
 def part2(lines):
-    pass
+    return find_marker(next(lines), marker_len=14)
 
-def find_marker(packet):
-    for i, c in enumerate(packet[3:], 3):
-        marker = packet[(i-3):(i+1)]
-        if len(set(marker)) == 4:
+def find_marker(packet, marker_len=4):
+    for i, c in enumerate(packet[(marker_len-1):], marker_len-1):
+        marker = packet[(i-marker_len+1):(i+1)]
+        if len(set(marker)) == marker_len:
             break
     return i+1
 
