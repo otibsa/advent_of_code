@@ -34,6 +34,36 @@ Monkey 3:
     If true: throw to monkey 0
     If false: throw to monkey 1""": 10605
     },
+    "part2": {
+        """\
+Monkey 0:
+  Starting items: 79, 98
+  Operation: new = old * 19
+  Test: divisible by 23
+    If true: throw to monkey 2
+    If false: throw to monkey 3
+
+Monkey 1:
+  Starting items: 54, 65, 75, 74
+  Operation: new = old + 6
+  Test: divisible by 19
+    If true: throw to monkey 2
+    If false: throw to monkey 0
+
+Monkey 2:
+  Starting items: 79, 60, 97
+  Operation: new = old * old
+  Test: divisible by 13
+    If true: throw to monkey 1
+    If false: throw to monkey 3
+
+Monkey 3:
+  Starting items: 74
+  Operation: new = old + 3
+  Test: divisible by 17
+    If true: throw to monkey 0
+    If false: throw to monkey 1""": 2713310158
+    },
 }
 
 class Monkey:
@@ -59,18 +89,21 @@ class Monkey:
         if op == "*":
             return old * value
 
-    def do_turn(self, monkeys, debug=True):
+    def do_turn(self, monkeys, modulus=None, debug=False):
         next_monkey = None
         for worry_level in self.items.copy():
             if debug:
                 print(f"  Monkey inspects an item with a worry level of {worry_level}.")
             self.inspections += 1
             worry_level = self.do_operation(worry_level)
+            if modulus:
+                worry_level = worry_level % modulus
             if debug:
                 print(f"    Worry level is {self.operation_tuple[0]} by {self.operation_tuple[1]} to {worry_level}.")
-            worry_level = worry_level // 3
-            if debug:
-                print(f"    Monkey gets bored with item. Worry level is divided by 3 to {worry_level}.")
+            if modulus is None:
+                worry_level = worry_level // 3
+                if debug:
+                    print(f"    Monkey gets bored with item. Worry level is divided by 3 to {worry_level}.")
             is_div = worry_level % self.divisible_by == 0
             if debug:
                 print(f"    Current worry level is{' not' if is_div else ''} divisible by {self.divisible_by}.")
@@ -93,23 +126,33 @@ def part1(lines):
     return run_game(monkeys, debug=False)
 
 def part2(lines):
-	pass
+    monkeys = parse_input(lines)
+    # Without dividing by 3, the numbers get very big quickly.
+    #
+    # Each monkey makes throwing decisions based on the item being divisible by
+    # a specific prime number. Calculating an operation on the original number
+    # and then looking at the modulo is equivalent to calulating on the
+    # "modulated" number.
+    # We cannot take just one monkey's prime number as the modulus, because each
+    # monkey has a different modulus. But calculating in mod(p) is the same as
+    # calculating in mod(p*q) with q being another monkey's modulus. So we take
+    # the product of all the monkey's prime numbers and calculate in that.
+    #
+    # See residue fields
+    shared_modulus = 1
+    for m in monkeys.values():
+        shared_modulus *= m.divisible_by
+    return run_game(monkeys, max_rounds=10000, modulus=shared_modulus, debug=False)
 
-def run_game(monkeys, debug=False):
-    for r in range(20):
+def run_game(monkeys, max_rounds=20, modulus=None, debug=False):
+    for r in range(1, max_rounds+1):
         for i, m in monkeys.items():
-            if debug:
-                print(f"Monkey {i}:")
-            m.do_turn(monkeys, debug=False)
-        if debug:
-            print()
-            print(f"After round {r+1}:")
+            m.do_turn(monkeys, modulus=modulus, debug=False)
+        if debug and r in [1,20]+[i*1000 for i in range(1,11)]:
+            print(f"After round {r}:")
             for i, m in monkeys.items():
-                print(f"Monkey {i}: {m}")
+                print(f"Monkey {i} inspected items {m.inspections} times")
             print()
-    if debug:
-        for i, m in monkeys.items():
-            print(f"Monkey {i} inspected items {m.inspections} times")
     inspections = sorted(m.inspections for m in monkeys.values())
     monkey_business = inspections[-2]*inspections[-1]
     return monkey_business
@@ -117,7 +160,6 @@ def run_game(monkeys, debug=False):
 def parse_input(lines):
     monkeys = {}
     for line in list(lines)+[""]:
-        # print(line)
         if m := re.match(r"^Monkey ([0-9]+)", line):
             i = int(m.group(1))
         elif m := re.match(r".*Starting items: (.*)", line):
