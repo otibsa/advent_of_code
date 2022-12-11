@@ -13,6 +13,15 @@ EXAMPLES = {
 35390
 """: 21
     },
+    "part2": {
+        """\
+30373
+25512
+65332
+33549
+35390
+""": 8
+    }
 }
 
 def line_generator(filename):
@@ -26,7 +35,9 @@ def part1(lines):
     return len(visible_trees)
 
 def part2(lines):
-    pass
+    tree_map = parse_input(lines)
+    viewing_distance = find_viewing_distance(tree_map)
+    return max(n*s*e*w for (n,s,e,w) in viewing_distance.values())
 
 def find_visible(tree_map):
     # assume square map
@@ -57,6 +68,27 @@ def find_visible(tree_map):
                     ceiling = h
 
     return visible
+
+def find_viewing_distance(tree_map):
+    n = len(tree_map)
+    viewing_distance = dict()
+    for y in range(1,n-1):
+        for x in range(1,n-1):
+            h = tree_map[y][x]
+            viewing_distance[(x,y)] = [0,0,0,0]
+            # look north, south, west, east
+            deltas = [(0,-1), (0,1), (-1,0), (1,0)]
+            for d, delta in enumerate(deltas):
+                tmp_x, tmp_y = x,y
+                while 0 <= tmp_x+delta[0] < n and 0 <= tmp_y+delta[1] < n:
+                    tmp_x += delta[0]
+                    tmp_y += delta[1]
+                    if tree_map[tmp_y][tmp_x] >= h and (tmp_x != x or tmp_y != y):
+                        break
+                distance = abs(tmp_y - y) + abs(tmp_x - x)
+                viewing_distance[(x,y)][d] = distance
+
+    return viewing_distance
 
 def parse_input(lines):
     tree_map = []
