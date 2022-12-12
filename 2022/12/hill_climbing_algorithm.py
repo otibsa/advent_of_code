@@ -12,6 +12,15 @@ accszExk
 acctuvwj
 abdefghi
 """: 31
+    },
+    "part2": {
+        """\
+Sabqponm
+abcryxxl
+accszExk
+acctuvwj
+abdefghi
+""": 29
     }
 }
 
@@ -29,16 +38,13 @@ class Graph:
             self.edges[dst] = dict()
         self.edges[src][dst] = weight
 
-    def filter_max_weight(self, max_weight):
+    def adjust_weights(self, func):
         for src, adjacents in list(self.edges.items()):
             for dst, weight in list(adjacents.items()):
-                if weight > max_weight:
+                self.edges[src][dst] = func(weight)
+                if self.edges[src][dst] == inf:
                     del self.edges[src][dst]
 
-    def remove_weights(self):
-        for src, adjacents in list(self.edges.items()):
-            for dst, weight in list(adjacents.items()):
-                self.edges[src][dst] = 1
 
     def find_shortest_path(self, start, end, heuristic, debug=False):
         # A* algorithm
@@ -71,10 +77,12 @@ def line_generator(filename):
 
 def part1(lines):
     graph, start, end = parse_input(lines)
-    graph.filter_max_weight(1)
     # edge weight zero messes up the path finding, we are only interested in
     # number of steps for now
-    graph.remove_weights()
+
+    # remove steps taller than 1 and replace all resulting weights with
+    # weight 1
+    graph.adjust_weights(lambda w: 1 if w <= 1 else inf)
     def vertical_distance(node):
         return ord(end[2]) - ord(node[2])
     def manhattan_distance(node):
@@ -88,7 +96,22 @@ def part1(lines):
     return len(path)-1
 
 def part2(lines):
-    pass
+    graph, start, end = parse_input(lines)
+    # walking in reverse, at most one step down
+    graph.adjust_weights(lambda w: 1 if w >= -1 else inf)
+    #for src in graph.edges.keys():
+    #    print(f"{src}: {graph.edges[src]}")
+
+    def dijkstra(node):
+        return 0
+    # start at the top, go to the start
+    going_to = graph.find_shortest_path(end, start, heuristic=dijkstra)
+    # using heuristic=0 devolves A* into Dijkstra which generates the shortest
+    # paths to all nodes from a single starting point.
+    # This means all "a" nodes were visited and are part of going_to
+    possible_starts = [node for node in going_to.keys() if node[2] == "a"]
+    shortest_path = min((unfold_path(ps, going_to) for ps in possible_starts), key=lambda path: len(path))
+    return len(shortest_path)-1
 
 def unfold_path(end, came_from, draw=False):
     ys = [node[0] for node in came_from.keys()]
