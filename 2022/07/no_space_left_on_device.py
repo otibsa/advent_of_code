@@ -30,10 +30,37 @@ $ ls
 7214296 k
 """: 95437
     },
+    "part2": {
+        """\
+$ cd /
+$ ls
+dir a
+14848514 b.txt
+8504156 c.dat
+dir d
+$ cd a
+$ ls
+dir e
+29116 f
+2557 g
+62596 h.lst
+$ cd e
+$ ls
+584 i
+$ cd ..
+$ cd ..
+$ cd d
+$ ls
+4060174 j
+8033020 d.log
+5626152 d.ext
+7214296 k
+""": 24933642
+    },
 }
 
 class Tree:
-    def __init__(self, name="", size=0, children=None, parent=None):
+    def __init__(self, name="", size=0, children=None, parent=None, is_folder=False):
         self._name = name
         self._size = size
         if children is None:
@@ -41,6 +68,7 @@ class Tree:
         self._children = children
         self._parent = parent
         self._full_path = name if parent is None else parent._full_path.rstrip("/")+f"/{name}"
+        self._is_folder = is_folder
 
     def cd(self, name):
         return [c for c in self._children if c._name == name][0]
@@ -61,20 +89,27 @@ def line_generator(filename):
             yield line.strip("\n")
 
 def part1(lines):
-    return calc_size(lines)
+    fs, folders_flat = parse_fs(lines)
+    return find_small(folders_flat)
 
 def part2(lines):
-    pass
+    disk_space    = 70000000
+    min_available = 30000000
 
-def calc_size(lines):
+    fs, folders_flat = parse_fs(lines)
+    to_be_deleted = min_available - (disk_space - fs._size)
+    tmp = [f for f in folders_flat.values() if f._size >= to_be_deleted and f._is_folder]
+    return sorted(tmp, key=lambda f: f._size)[0]._size
+
+def parse_fs(lines):
     fs=None
     folders_flat = {}
     for line in lines:
-        print(f"{line=} {fs=}")
         if m := re.match(r"\$ cd (.*)", line):
             name = m.group(1)
             if name == "/":
-                fs = Tree(name="/")
+                fs = Tree(name="/", is_folder=True)
+                folders_flat[fs._full_path] = fs
             elif name == "..":
                 fs = fs._parent
             else:
@@ -83,7 +118,7 @@ def calc_size(lines):
             pass
         elif m := re.match(r"dir (.*)", line):
             name = m.group(1)
-            child = Tree(name=name, parent=fs)
+            child = Tree(name=name, parent=fs, is_folder=True)
             fs._children += [child]
             folders_flat[child._full_path] = child
         elif m := re.match(r"([0-9]+) (.*)", line):
@@ -95,13 +130,11 @@ def calc_size(lines):
 
     while fs._parent is not None:
         fs = fs._parent
-
     fs.update_size()
+    return fs, folders_flat
 
-    for f in folders_flat.values():
-        if f._size <= 100000 and f._children != []:
-            print(f)
-    return sum(f._size for f in folders_flat.values() if f._size <= 100000 and f._children != [])
+def find_small(folders_flat):
+    return sum(f._size for f in folders_flat.values() if f._size <= 100000 and f._is_folder)
 
 if __name__ == "__main__":
     filename = os.path.dirname(os.path.realpath(__file__))+"/input.txt"
