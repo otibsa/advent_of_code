@@ -2,6 +2,7 @@ import os
 import re
 from collections import defaultdict
 import json
+from functools import cmp_to_key
 
 EXAMPLES = {
     "part1": {
@@ -34,6 +35,33 @@ EXAMPLES = {
 [[4, 4], 4, 4, 4]
 [[4, 4], 4, 4]
 """: 0  # p1,p2 are in the right order (as in the example input), then p2,p1 must be in the wrong order
+    },
+    "part2": {
+        """\
+[1,1,3,1,1]
+[1,1,5,1,1]
+
+[[1],[2,3,4]]
+[[1],4]
+
+[9]
+[[8,7,6]]
+
+[[4,4],4,4]
+[[4,4],4,4,4]
+
+[7,7,7,7]
+[7,7,7]
+
+[]
+[3]
+
+[[[]]]
+[[]]
+
+[1,[2,[3,[4,[5,6,7]]]],8,9]
+[1,[2,[3,[4,[5,6,0]]]],8,9]
+""": 140,
     }
 }
 
@@ -54,7 +82,18 @@ def part1(lines):
     return sum(i+1 for i, (p1,p2) in enumerate(packet_pair_gen(lines)) if cmp_packets(p1,p2)<0)
 
 def part2(lines):
-    pass
+    dividers = [
+        [[2]],
+        [[6]],
+    ]
+    packets = [json.loads(line) for line in lines if line != ""]
+    packets = sorted(packets+dividers, key=cmp_to_key(cmp_packets))
+
+    decoder_key = 1
+    for i, packet in enumerate(packets):
+        if packet in dividers:
+            decoder_key *= i+1
+    return decoder_key
 
 def sign(x):
     return 0 if x == 0 else x//abs(x)
