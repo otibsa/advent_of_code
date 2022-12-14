@@ -9,6 +9,12 @@ EXAMPLES = {
 498,4 -> 498,6 -> 496,6
 503,4 -> 502,4 -> 502,9 -> 494,9
 """: 24,
+    },
+    "part2": {
+        """\
+498,4 -> 498,6 -> 496,6
+503,4 -> 502,4 -> 502,9 -> 494,9
+""": 93,
     }
 }
 
@@ -22,7 +28,8 @@ def part1(lines):
     return simulate_sand(cave, range_y, range_x)
 
 def part2(lines):
-    pass
+    cave, range_y, range_x = parse_input(lines)
+    return simulate_sand(cave, range_y, range_x, floor=max(range_y)+2)
 
 def parse_input(lines):
     cave = defaultdict(lambda: defaultdict(lambda: "."))
@@ -59,14 +66,17 @@ def draw_cave(cave, range_y, range_x):
         s += "\n"
     print(s)
 
-def simulate_sand(cave, range_y, range_x):
+def simulate_sand(cave, range_y, range_x, floor=None, debug=False):
     resting_grains = 0
     falling_into_abyss = False
-    while not falling_into_abyss:
+    blocked = False
+    while not falling_into_abyss and not blocked:
         x,y = 500,0
-        while y in range_y:
+        if cave[y][x] == "o":
+            blocked = True
+        while y in range_y or (floor is not None and y < floor):
             y += 1
-            if y not in range_y:
+            if y not in range_y and floor is None:
                 falling_into_abyss = True
             if cave[y][x] == ".":
                 continue
@@ -78,12 +88,13 @@ def simulate_sand(cave, range_y, range_x):
                 continue
             # no free position, so the grain is fixed, let the next one fall
             break
-        if not falling_into_abyss:
+        if not falling_into_abyss and not blocked:
             cave[y-1][x] = "o"
             resting_grains += 1
-            # print()
-            # draw_cave(cave, range(min(range_y)-1, max(range_y)+2), range(min(range_x)-1, max(range_x)+2))
-            # print(resting_grains)
+            if debug:
+                print()
+                draw_cave(cave, range(min(range_y)-1, max(range_y)+4), range(min(range_x)-10, max(range_x)+11))
+                print(resting_grains)
     return resting_grains
 
 
