@@ -1,13 +1,18 @@
 import os
 import re
 from collections import defaultdict
-from time import sleep
+from time import sleep, time
 
 EXAMPLES = {
     "part1": {
         """\
 >>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>
 """: 3068,
+    },
+    "part2": {
+        """\
+>>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>
+""": 1514285714288,
     },
 }
 
@@ -34,12 +39,33 @@ def part1(chars):
     return get_height(grid)
 
 def part2(chars):
-    pass
+    jets = list(chars)
+    grid = defaultdict(lambda: ["." for _ in range(7)])
+    grid = drop_rocks(grid, jets, 1000000000000)
+    return get_height(grid)
 
 def drop_rocks(grid, jets, nr_rocks):
+    max_column_height = [-1 for _ in range(7)]
+    hashes = {}
+    skipped = 0
+    i = 0
     j = 0
-    for i in range(nr_rocks):
+    while i < nr_rocks:
+        h = hash((i%len(rocks), j%len(jets), tuple(["".join(line) for line in grid.values()])))
         height = get_height(grid)
+        if h not in hashes:
+            hashes[h] = (i, j, height)
+        elif not skipped:
+            prev_i, prev_j, prev_height = hashes[h]
+            skipped = nr_rocks // (i-prev_i) - 1
+            if skipped <= 0:
+                skipped = 1
+            i = prev_i + skipped * (i-prev_i)
+            j = prev_j + skipped * (j-prev_j)
+            for y in list(grid.keys()):
+                tmp = grid[y]
+                del grid[y]
+                grid[y+(skipped-1)*(height-prev_height)] = tmp
         rock = rocks[i%len(rocks)].split("\n")
         falling = True
 
@@ -90,15 +116,16 @@ def drop_rocks(grid, jets, nr_rocks):
                 #print("Rock falls 1 unit, causing it to come to rest:")
                 pass
         #print(f"Rock {rock} stopped falling at {ry=} {rx=}")
-        #for y in range(len(rock)):
-        #    grid[ry+y] = rx*"." + rock[y].replace("@", "#") + (7-rx)*"."
         for y in range(len(rock)):
             for x in range(len(rock[y])):
                 if rock[y][x] != ".":
                     grid[ry+y][rx+x] = "#"
-        #draw_grid(grid)
-        #print()
-        #print(get_height(grid))
+                    max_column_height[rx+x] = max(max_column_height[rx+x], ry+y)
+        for y in list(grid.keys()):
+            if y < min(max_column_height):
+                # remove all covered layers
+                del grid[y]
+        i += 1
 
     return grid
 
@@ -116,7 +143,11 @@ def draw_grid(grid, rock=None, ry=None, rx=None):
     h = get_height(grid)
     if rock is not None:
         h = max(h, ry+len(rock))
-    for y in range(h)[::-1]:
+    y = 0
+    for y in sorted(grid.keys())[::-1]:
+        if y<0 or y > h:
+            continue
+        s += f"{y:13} "
         s += "|"
         for x in range(7):
             if rock is not None:
@@ -128,7 +159,9 @@ def draw_grid(grid, rock=None, ry=None, rx=None):
                 s += grid[y][x]
         s += "|"
         s += "\n"
-    s += "+"
+    if y > 0:
+        s += " "*13 + " %" + " "*7 + "%\n"
+    s += " "*13 + " +"
     s += "-"*7
     s += "+"
     print(s)
