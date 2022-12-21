@@ -23,6 +23,21 @@ Blueprint 2:
 Blueprint 1: Each ore robot costs 3 ore. Each clay robot costs 3 ore. Each obsidian robot costs 2 ore and 19 clay. Each geode robot costs 2 ore and 12 obsidian.
 """: 1
     },
+    "part2": {
+        """\
+Blueprint 1:
+  Each ore robot costs 4 ore.
+  Each clay robot costs 2 ore.
+  Each obsidian robot costs 3 ore and 14 clay.
+  Each geode robot costs 2 ore and 7 obsidian.
+
+Blueprint 2:
+  Each ore robot costs 2 ore.
+  Each clay robot costs 3 ore.
+  Each obsidian robot costs 3 ore and 8 clay.
+  Each geode robot costs 3 ore and 12 obsidian.
+""": 56*62,
+    }
 }
 
 index = {"ore": 0, "clay": 1, "obsidian": 2, "geode": 3}
@@ -55,7 +70,18 @@ def part1(lines):
     return quality_level
 
 def part2(lines):
-	pass
+    blueprints = parse_input(lines)
+    product = 1
+    for i, costs in list(blueprints.items())[:3]:
+        print(f"Blueprint {i} costs: ")
+        for m in names:
+            print(f"{m:>8}: {costs[m]}")
+
+        geodes, path = collect_geodes(costs, 32)
+        print(f"Got {geodes} geodes using path {path}")
+        print()
+        product *= geodes
+    return product
 
 def collect_geodes(costs, remaining_time, minerals=None, robots=None, most_geodes=0, path=None, playbook=None):
     if minerals is None:
