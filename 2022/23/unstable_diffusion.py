@@ -3,6 +3,7 @@ import re
 from collections import defaultdict
 from time import sleep, time
 from pprint import pprint
+from math import inf
 
 EXAMPLES = {
     "part1": {
@@ -24,6 +25,17 @@ EXAMPLES = {
 .#..#..
 """: 110
     },
+    "part2": {
+        """\
+....#..
+..###.#
+#...#.#
+.#...##
+#.###..
+##.#.##
+.#..#..
+""": 20
+    },
 }
 
 directions = ">v<^"
@@ -36,7 +48,7 @@ def line_generator(filename):
 def part1(lines):
     grid, elves, max_y, max_x = parse_input(lines)
     #draw_grid(grid, range(max_y+1), range(max_x+1))
-    grid, elves = move_elves(grid, elves, 10)
+    grid, elves, rounds = move_elves(grid, elves, 10)
     min_y, min_x = list(elves.keys())[0]
     max_y, max_x = list(elves.keys())[0]
     for y,x in elves:
@@ -48,12 +60,16 @@ def part1(lines):
     return (max_y+1-min_y)*(max_x+1-min_x)-len(elves)
 
 def part2(lines):
-    pass
+    grid, elves, max_y, max_x = parse_input(lines)
+    grid, elves, rounds = move_elves(grid, elves, inf)
+    return rounds
 
-def move_elves(grid, elves, rounds):
+def move_elves(grid, elves, max_rounds):
     elves = {e: None for e in elves}
     first_direction = 0
-    while rounds > 0:
+    #while rounds is None or rounds > 0:
+    r = 1
+    while r <= max_rounds:
         proposed = defaultdict(int)
         deltas = [
             [(-1,-1), (-1, 0), (-1, 1)],  # NW, N, NE
@@ -96,10 +112,10 @@ def move_elves(grid, elves, rounds):
         first_direction = (first_direction+1)%4
         if elves_moved == 0:
             break
-        rounds -= 1
+        r += 1
         #print(f"T-{rounds}: ")
         #draw_grid(grid, range(min_y, max_y+1), range(min_x, max_x+1))
-    return grid, elves
+    return grid, elves, r
 
 def draw_grid(grid, range_y, range_x):
     s = "    "
